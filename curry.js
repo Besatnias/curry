@@ -63,12 +63,6 @@ const quoteToDb = (symbol, price) =>
 			, { $set: { price: price } }
 			, { upsert: true }))
 
-const logBTC = () => {
-	curry.find({ symbol: 'BTC'})
-		.then( entry =>
-			log(1 / entry[0].price))
-}
-
 const fillDb = () => Promise.all([ cmcToDb(), forgeToDb(), dtToDb() ])
 	.then(res=> store.persistence.compactDatafile(), true)
 	.catch(console.err)
