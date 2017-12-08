@@ -18,6 +18,7 @@ const Cmc = require('node-coinmarketcap')
 	, curry = nedbPromise.fromInstance(store)
 // HTTP
 	, rp = require('request-promise')
+	, { CronJob } = require('cron');
 
 const forgeExchanges = [
 	'EURUSD', 'GBPUSD', 'AUDUSD',
@@ -80,6 +81,5 @@ const goJob = () => {
 	fillDb()
 }
 
-const { CronJob } = require('cron')
 const job = new CronJob('*/2 * * * *', goJob)
 job.start()
