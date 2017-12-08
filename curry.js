@@ -8,12 +8,14 @@ const Cmc = require('node-coinmarketcap')
 	, ForexDataClient = require('./ForexDataClient.js')
 	, forge = new ForexDataClient(forge_key)
 // NeDb
-	, Db = require('nedb-promise')
-	, curry = new Db({
-			filename: 'curry.json'
-		, autoload: true
-		, onload: (e) => e && console.err(e)
-	})
+	, Db = require('nedb')
+	, store = new Db({
+			autoload: true,
+			filename: 'curry.json',
+			onload: (e) => e && console.err(e)
+		})
+	, nedbPromise = require('nedb-promise')
+	, curry = nedbPromise.fromInstance(store)
 // HTTP
 	, rp = require('request-promise')
 
@@ -57,9 +59,38 @@ const quoteToDb = (symbol, price) =>
 		.then( entry =>
 			entry.price !== price
 			&& curry.update(
-				{ symbol: symbol, id: (entry[0] || {})._id }
+				{ symbol: symbol, _id: (entry[0] || {})._id }
 			, { $set: { price: price } }
 			, { upsert: true }))
+
+const logBTC = () => {
+	curry.find({ symbol: 'BTC'})
+		.then( entry =>
+			log(1 / entry[0].price))
+}
+
+const fillDb = () => Promise.all([ cmcToDb(), forgeToDb(), dtToDb() ])
+	.then(res=> store.persistence.compactDatafile(), true)
+	.catch(console.err)
+
+const twoChars = item =>
+ (item<10?'0':'') + item
+
+const getHHMMSS = d =>
+	`${twoChars(d.getHours())}:${twoChars(d.getMinutes())}:${twoChars(d.getSeconds())}`
+
+const goJob = () => {
+	const d = new Date()
+	const str = getHHMMSS(d)
+	console.log('Filling database at ' + str)
+	fillDb()
+}
+
+const { CronJob } = require('cron')
+const job = new CronJob('*/2 * * * *', goJob)
+job.start()
+// new CronJob('*/120 * * * * *')
+
 
 // forge.getSymbols()
 // 	.then(symbols =>
